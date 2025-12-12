@@ -4,6 +4,10 @@ import { useState, type FormEvent, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
+// Forzar renderizado dinámico
+export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
+
 export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
