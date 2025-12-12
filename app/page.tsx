@@ -27,7 +27,12 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const supabase = createClient()
+      let supabase
+      try {
+        supabase = createClient()
+      } catch (clientError) {
+        throw new Error("Error al inicializar Supabase. Verifica las variables de entorno.")
+      }
       
       // Intentar obtener la contraseña de la base de datos
       const { data, error: fetchError } = await supabase
@@ -69,7 +74,13 @@ export default function LoginPage() {
     }
   }
 
-  if (!isMounted) return null
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-rose-400">Cargando...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
