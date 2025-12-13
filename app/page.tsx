@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 
 export default function LoginPage() {
   const [password, setPassword] = useState("")
@@ -27,60 +26,36 @@ export default function LoginPage() {
     setError("")
 
     try {
-      let supabase
-      try {
-        supabase = createClient()
-      } catch (clientError) {
-        throw new Error("Error al inicializar Supabase. Verifica las variables de entorno.")
-      }
-      
-      // Intentar obtener la contraseña de la base de datos
-      const { data, error: fetchError } = await supabase
-        .from("app_config")
-        .select("password_hash")
-        .limit(1)
-        .maybeSingle()
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password }),
+      })
 
-      if (fetchError) {
-        console.error("Error de Supabase:", fetchError)
-        // Mensajes más específicos según el tipo de error
-        if (fetchError.code === "PGRST116") {
-          throw new Error("No se encontró configuración. Ejecuta el script SQL en Supabase.")
-        }
-        if (fetchError.message?.includes("permission denied") || fetchError.message?.includes("RLS")) {
-          throw new Error("Error de permisos. Verifica las políticas RLS en Supabase.")
-        }
-        throw new Error(fetchError.message || "Error al conectar con la base de datos")
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Error al verificar")
+        return
       }
 
-      if (!data || !data.password_hash) {
-        throw new Error("No se encontró la configuración de contraseña. Ejecuta el script SQL en Supabase.")
-      }
-
-      if (data.password_hash === password) {
+      if (data.success) {
         if (typeof window !== "undefined") {
           localStorage.setItem("timeline_authenticated", "true")
         }
         router.push("/timeline")
-      } else {
-        setError("Contraseña incorrecta")
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Error al verificar"
-      console.error("Error en login:", err)
-      setError(errorMessage)
+      console.error("[v0] Fetch error:", err)
+      setError("La base de datos está iniciando. Por favor, espera 1-2 minutos e intenta de nuevo.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (!isMounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-rose-400">Cargando...</div>
-      </div>
-    )
-  }
+  if (!isMounted) return null
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
@@ -94,7 +69,7 @@ export default function LoginPage() {
           className="w-full px-4 py-2 text-sm text-center rounded-full border border-gray-200 focus:outline-none focus:border-rose-300 transition-colors"
         />
 
-        {error && <p className="text-red-400 text-xs">{error}</p>}
+        {error && <p className="text-red-400 text-xs text-center max-w-[250px]">{error}</p>}
 
         <button
           type="submit"
